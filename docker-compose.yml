@@ -1,6 +1,6 @@
 services:
   kratos:
-    image: oryd/kratos:v1.3.1
+    image: oryd/kratos:v26.2.0
     restart: unless-stopped
     # secrets.yml (git-ignored) is merged on top of kratos.yml — later -c
     # files override earlier ones. See deploy/kratos/secrets.example.yml.
