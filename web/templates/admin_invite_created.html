@@ -1,0 +1,21 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Login created</h1>
+    <p class="subtitle">{{.Email}} ({{.Role}}) can now set a password using the link below.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p>There's no mail server configured, so send this link to them yourself — it expires {{.ExpiresAt}}:</p>
+    <p style="word-break: break-all; font-family: monospace; background: var(--surface-alt); padding: 0.75rem; border-radius: 8px;">
+      {{.RecoveryLink}}
+    </p>
+    <div class="form-actions">
+      <a href="/admin/invite" class="btn btn-secondary">Invite another</a>
+      <a href="/staff" class="btn btn-primary">Done</a>
+    </div>
+  </div>
+</div>
+{{end}}

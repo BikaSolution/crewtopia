@@ -1,0 +1,77 @@
+services:
+  kratos:
+    image: oryd/kratos:v1.3.1
+    restart: unless-stopped
+    # secrets.yml (git-ignored) is merged on top of kratos.yml — later -c
+    # files override earlier ones. See deploy/kratos/secrets.example.yml.
+    command: serve -c /etc/config/kratos/kratos.yml -c /etc/config/kratos/secrets.yml --watch-courier
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      # Loopback only: local debugging (curl) without exposing either API to
+      # the LAN/internet. The admin API is unauthenticated — never publish it
+      # on 0.0.0.0. Containers reach kratos over the compose network anyway.
+      - "127.0.0.1:4433:4433" # public API
+      - "127.0.0.1:4434:4434" # admin API — identity CRUD, invite flow
+    volumes:
+      - ./deploy/kratos:/etc/config/kratos:ro
+      - kratos-data:/var/lib/kratos
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - kratos
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      CREWTOPIA_DB: /data/crewtopia.db
+      CREWTOPIA_KRATOS_PUBLIC_URL: http://kratos:4433
+      CREWTOPIA_KRATOS_ADMIN_URL: http://kratos:4434
+    volumes:
+      - app-data:/data
+
+  oathkeeper:
+    image: oryd/oathkeeper:v0.40.9
+    restart: unless-stopped
+    command: serve -c /etc/config/oathkeeper/oathkeeper.yml
+    depends_on:
+      - kratos
+      - app
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      # Loopback only — hit the proxy directly (http://127.0.0.1:4455)
+      # without going out through the tunnel. Public traffic arrives via
+      # cloudflared over the compose network, not via these host ports.
+      - "127.0.0.1:4455:4455" # proxy — the front door
+      - "127.0.0.1:4456:4456" # oathkeeper's own management API
+    volumes:
+      - ./deploy/oathkeeper:/etc/config/oathkeeper:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.7@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Token via env, not argv, so it doesn't show up in the host's `ps`.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      - oathkeeper
+
+volumes:
+  kratos-data:
+  app-data:

@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Edit roster</h1>
+    <p class="subtitle">Week starting {{.WeekStart}}. Generate fills every slot; unfilled or contested slots can be fixed by hand below.</p>
+  </div>
+</div>
+
+<div class="roster-toolbar">
+  <a class="btn btn-secondary btn-sm" href="/roster/edit?week={{.PrevWeek}}">&larr; Previous week</a>
+  <a class="btn btn-secondary btn-sm" href="/roster/edit?week={{.NextWeek}}">Next week &rarr;</a>
+  <form method="post" action="/roster/generate">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="week" value="{{.WeekStart}}">
+    <button type="submit" class="btn btn-primary btn-sm">Generate roster</button>
+  </form>
+  <a class="btn btn-secondary btn-sm" href="/roster?week={{.WeekStart}}">View only</a>
+  <button type="button" class="btn btn-secondary btn-sm" data-action="print">Print</button>
+  <form method="get" action="/roster/export.csv" class="field" style="display:flex; align-items:flex-end; gap:0.5rem;">
+    <div>
+      <label for="month">Export month as CSV</label>
+      <input type="month" id="month" name="month" value="{{.CurrentMonth}}">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Export CSV</button>
+  </form>
+</div>
+
+<div class="roster-list">
+  {{range .Days}}
+  <div class="roster-day">
+    <div class="roster-day-header">{{.Label}}</div>
+    <div class="roster-day-slots">
+      {{if not .Cells}}
+        <div class="roster-slot empty">No shifts</div>
+      {{else}}
+        {{range .Cells}}{{template "roster_cell" .}}{{end}}
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+
+{{template "print_table" .}}
+{{end}}

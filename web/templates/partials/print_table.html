@@ -1,0 +1,31 @@
+{{define "print_table"}}
+<table class="print-table">
+  <thead>
+    <tr>
+      <th>Shift</th>
+      {{range .PrintTable.Columns}}
+      <th>{{.Short}}<br>{{.Date}}</th>
+      {{end}}
+    </tr>
+  </thead>
+  <tbody>
+    {{if not .PrintTable.Rows}}
+    <tr><td colspan="99">No shifts this week</td></tr>
+    {{end}}
+    {{range .PrintTable.Rows}}
+    <tr>
+      <th>{{.ShiftName}}<br>{{.StartTime}}&ndash;{{.EndTime}}</th>
+      {{range .Cells}}
+        {{if not .Scheduled}}
+          <td class="print-cell-inactive">&mdash;</td>
+        {{else if eq .Name ""}}
+          <td class="print-cell-unfilled">Unfilled</td>
+        {{else}}
+          <td>{{.Name}}</td>
+        {{end}}
+      {{end}}
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}

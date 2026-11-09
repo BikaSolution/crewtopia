@@ -1,0 +1,230 @@
+# Note: this glob implementation doesn't support {a,b,c} brace alternation
+# (tried it, matches nothing) — so each path prefix gets its own rule instead
+# of one combined pattern. Oathkeeper requires exactly one rule to match any
+# given request, which is also why the public pages/assets are enumerated
+# rather than handled by a catch-all that would overlap app-protected-*.
+
+- id: kratos-public-api
+  match:
+    url: "<**>/.ory/kratos/public/<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://kratos:4433"
+    strip_path: /.ory/kratos/public
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-login
+  match:
+    url: "https://crewtopia.bikasolutions.co.za/login"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-logout
+  match:
+    url: "https://crewtopia.bikasolutions.co.za/logout"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-recovery
+  match:
+    url: "https://crewtopia.bikasolutions.co.za/recovery"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-settings
+  match:
+    url: "https://crewtopia.bikasolutions.co.za/settings"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-healthz
+  match:
+    url: "<**>/healthz"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-favicon
+  match:
+    url: "<**>/favicon.ico"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-public-static
+  match:
+    url: "<**>/static/<**>"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-protected-staff
+  match:
+    url: "<**>/staff<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-User-Id: "{{ print .Subject }}"
+          X-User-Email: "{{ print .Extra.identity.traits.email }}"
+          X-User-Role: "{{ print .Extra.identity.metadata_public.role }}"
+
+- id: app-protected-shifts
+  match:
+    url: "<**>/shifts<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-User-Id: "{{ print .Subject }}"
+          X-User-Email: "{{ print .Extra.identity.traits.email }}"
+          X-User-Role: "{{ print .Extra.identity.metadata_public.role }}"
+
+- id: app-public-roster-view
+  # The read-only roster (bare /roster, no trailing path) is publicly
+  # viewable — no session required. Everything under /roster/... (edit,
+  # export, reassignment) is still gated by app-protected-roster below.
+  match:
+    url: "<**>/roster"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: app-protected-roster
+  match:
+    url: "<**>/roster/<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-User-Id: "{{ print .Subject }}"
+          X-User-Email: "{{ print .Extra.identity.traits.email }}"
+          X-User-Role: "{{ print .Extra.identity.metadata_public.role }}"
+
+- id: app-protected-seed
+  match:
+    url: "<**>/seed<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-User-Id: "{{ print .Subject }}"
+          X-User-Email: "{{ print .Extra.identity.traits.email }}"
+          X-User-Role: "{{ print .Extra.identity.metadata_public.role }}"
+
+- id: app-protected-admin
+  match:
+    url: "<**>/admin<**>"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: header
+      config:
+        headers:
+          X-User-Id: "{{ print .Subject }}"
+          X-User-Email: "{{ print .Extra.identity.traits.email }}"
+          X-User-Role: "{{ print .Extra.identity.metadata_public.role }}"
+
+- id: app-root
+  # Just a redirect to /roster (itself public) — no session needed to hit it.
+  match:
+    url: "https://crewtopia.bikasolutions.co.za/"
+    methods: ["GET"]
+  upstream:
+    url: "http://app:8080"
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop

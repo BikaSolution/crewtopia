@@ -1,0 +1,64 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Shifts</h1>
+    <p class="subtitle">The shift types staff can be rostered onto, and which days they run.</p>
+  </div>
+  <div class="header-actions">
+    {{if .CurrentUser.IsSuperAdmin}}
+    <form method="post" action="/seed">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="btn btn-secondary">Seed test data</button>
+    </form>
+    {{end}}
+    <a href="/shifts/new" class="btn btn-primary">+ Add shift</a>
+  </div>
+</div>
+
+<div class="card">
+  {{if not .Shifts}}
+    <div class="empty-state">
+      <div class="icon">🗓️</div>
+      <p>No shifts yet. Add your first shift to get started.</p>
+    </div>
+  {{else}}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Active days</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Shifts}}
+        {{$sh := .}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td>{{.StartTime}}</td>
+          <td>{{.EndTime}}</td>
+          <td>
+            <div class="day-pills">
+              {{range weekdays}}
+                <span class="day-pill{{if hasDay $sh.ActiveDays .Bit}} on{{end}}" title="{{.Label}}">{{.Short}}</span>
+              {{end}}
+            </div>
+          </td>
+          <td class="row-actions">
+            <a class="btn btn-secondary btn-sm" href="/shifts/{{.ID}}/edit">Edit</a>
+            <form method="post" action="/shifts/{{.ID}}/delete" data-confirm="Remove {{.Name}}?" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+</div>
+{{end}}

@@ -1,0 +1,50 @@
+{{define "layout.html"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crewtopia</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/styles.css?v={{assetVersion}}">
+  <script src="/static/htmx.min.js?v={{assetVersion}}"></script>
+  <script src="/static/app.js?v={{assetVersion}}"></script>
+</head>
+<body>
+  <div class="topnav">
+    <span class="brand">Crewtopia</span>
+    {{if .PublicView}}
+    <nav>
+      <a href="/roster" class="active">Roster</a>
+    </nav>
+    <a href="/login" class="btn btn-secondary btn-sm">Login</a>
+    {{else}}
+    <nav>
+      <a href="/staff" class="{{if eq .ActiveNav "staff"}}active{{end}}">Staff</a>
+      <a href="/shifts" class="{{if eq .ActiveNav "shifts"}}active{{end}}">Shifts</a>
+      <a href="/roster" class="{{if eq .ActiveNav "roster"}}active{{end}}">Roster</a>
+      <a href="/roster/edit" class="{{if eq .ActiveNav "roster-edit"}}active{{end}}">Edit roster</a>
+      {{if .CurrentUser.IsSuperAdmin}}
+      <a href="/admin/invite" class="{{if eq .ActiveNav "admin-invite"}}active{{end}}">Invite login</a>
+      {{end}}
+    </nav>
+    {{if .CurrentUser.Email}}
+    <span class="subtitle">{{.CurrentUser.Email}}</span>
+    <a href="/logout" class="btn btn-secondary btn-sm">Log out</a>
+    {{end}}
+    {{end}}
+  </div>
+  <main class="container">
+    {{block "content" .}}{{end}}
+  </main>
+  <footer class="site-footer">
+    <span>&copy; {{currentYear}} Crewtopia</span>
+    <span>crewtopia.bikasolutions.co.za</span>
+    <span>Code by Niki &amp; Ryki</span>
+  </footer>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,49 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Roster</h1>
+    <p class="subtitle">Week starting {{.WeekStart}}</p>
+  </div>
+</div>
+
+<div class="roster-toolbar">
+  <a class="btn btn-secondary btn-sm" href="/roster?week={{.PrevWeek}}">&larr; Previous week</a>
+  <a class="btn btn-secondary btn-sm" href="/roster?week={{.NextWeek}}">Next week &rarr;</a>
+  <a class="btn btn-primary btn-sm" href="/roster/edit?week={{.WeekStart}}">Edit this roster</a>
+  <button type="button" class="btn btn-secondary btn-sm" data-action="print">Print</button>
+  <form method="get" action="/roster/export.csv" class="field" style="display:flex; align-items:flex-end; gap:0.5rem;">
+    <div>
+      <label for="month">Export month as CSV</label>
+      <input type="month" id="month" name="month" value="{{.CurrentMonth}}">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Export CSV</button>
+  </form>
+</div>
+
+<div class="roster-list">
+  {{range .Days}}
+  <div class="roster-day">
+    <div class="roster-day-header">{{.Label}}</div>
+    <div class="roster-day-slots">
+      {{if not .Assignments}}
+        <div class="roster-slot empty">No shifts</div>
+      {{else}}
+        {{range .Assignments}}
+        <div class="roster-slot{{if .Unfilled}} unfilled{{end}}">
+          <div class="shift-name">{{.ShiftName}}</div>
+          <div class="shift-time">{{.StartTime}}&ndash;{{.EndTime}}</div>
+          {{if .Unfilled}}
+            <span class="assignee unfilled">Unfilled</span>
+          {{else}}
+            <span class="assignee">{{.StaffName}}</span>
+          {{end}}
+        </div>
+        {{end}}
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+
+{{template "print_table" .}}
+{{end}}

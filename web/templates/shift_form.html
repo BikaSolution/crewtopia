@@ -1,0 +1,45 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>{{if .IsNew}}Add shift{{else}}Edit {{.Shift.Name}}{{end}}</h1>
+    <p class="subtitle">Define the time range and which weekdays this shift runs.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form class="stack" method="post" action="{{if .IsNew}}/shifts{{else}}/shifts/{{.Shift.ID}}{{end}}">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{.Shift.Name}}" required>
+      </div>
+      <div class="field">
+        <label for="start_time">Start time</label>
+        <input type="time" id="start_time" name="start_time" value="{{.Shift.StartTime}}" required>
+      </div>
+      <div class="field">
+        <label for="end_time">End time</label>
+        <input type="time" id="end_time" name="end_time" value="{{.Shift.EndTime}}" required>
+      </div>
+
+      <div class="field">
+        <label>Active days</label>
+        <div class="checkbox-row">
+          {{range weekdays}}
+          <label>
+            <input type="checkbox" name="{{.Short}}" {{if hasDay $.Shift.ActiveDays .Bit}}checked{{end}}>
+            <span>{{.Short}}</span>
+          </label>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{if .IsNew}}Add shift{{else}}Save changes{{end}}</button>
+        <a href="/shifts" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

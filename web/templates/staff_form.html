@@ -1,0 +1,65 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>{{if .IsNew}}Add staff{{else}}Edit {{.Staff.Name}}{{end}}</h1>
+    <p class="subtitle">Set their contact details, desire to work, weekly availability, and which shifts they can cover.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form class="stack" method="post" action="{{if .IsNew}}/staff{{else}}/staff/{{.Staff.ID}}{{end}}">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{.Staff.Name}}" required>
+      </div>
+      <div class="field">
+        <label for="nickname">Nickname</label>
+        <input type="text" id="nickname" name="nickname" value="{{.Staff.Nickname}}">
+      </div>
+      <div class="field">
+        <label for="contact_number">Contact number</label>
+        <input type="tel" id="contact_number" name="contact_number" value="{{.Staff.ContactNumber}}">
+      </div>
+      <div class="field">
+        <label for="desire">Desire (%)</label>
+        <input type="number" id="desire" name="desire" min="0" max="100" step="0.01" value="{{.Staff.Desire}}" required>
+      </div>
+
+      <div class="field">
+        <label>Available days</label>
+        <div class="checkbox-row">
+          {{range weekdays}}
+          <label>
+            <input type="checkbox" name="{{.Short}}" {{if hasDay $.Staff.AvailableDays .Bit}}checked{{end}}>
+            <span>{{.Short}}</span>
+          </label>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Capable of these shifts</label>
+        {{if not .Shifts}}
+          <p class="subtitle">No shifts have been created yet — <a href="/shifts/new">add one first</a>.</p>
+        {{else}}
+        <div class="multiselect">
+          {{range .Shifts}}
+          <label>
+            <input type="checkbox" name="shift_id" value="{{.ID}}" {{if contains $.Staff.CapableShiftIDs .ID}}checked{{end}}>
+            {{.Name}} <span class="subtitle">({{.StartTime}}&ndash;{{.EndTime}})</span>
+          </label>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{if .IsNew}}Add staff{{else}}Save changes{{end}}</button>
+        <a href="/staff" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

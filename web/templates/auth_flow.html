@@ -1,0 +1,41 @@
+{{define "content"}}
+<div style="max-width: 26rem; margin: 3rem auto 0;">
+  <div class="page-header" style="justify-content:center; text-align:center;">
+    <div>
+      <h1>{{.Title}}</h1>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      {{range .Flow.UI.Messages}}
+        <p class="subtitle" style="color:var(--danger)">{{.Text}}</p>
+      {{end}}
+
+      <form class="stack" action="{{.Flow.UI.Action}}" method="{{.Flow.UI.Method}}">
+        {{range .Flow.UI.Nodes}}
+          {{$a := .Attributes}}
+          {{if eq $a.Type "hidden"}}
+            <input type="hidden" name="{{$a.Name}}" value="{{$a.Value}}">
+          {{else if eq $a.Type "submit"}}
+            <button class="btn btn-primary" type="submit" name="{{$a.Name}}" value="{{$a.Value}}">{{.Label}}</button>
+          {{else}}
+            <div class="field">
+              <label>{{.Label}}</label>
+              <input
+                type="{{$a.Type}}"
+                name="{{$a.Name}}"
+                value="{{$a.Value}}"
+                {{if $a.Required}}required{{end}}
+                {{if $a.Disabled}}disabled{{end}}>
+            </div>
+          {{end}}
+          {{range .Messages}}
+            <p class="subtitle" style="color:var(--danger)">{{.Text}}</p>
+          {{end}}
+        {{end}}
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}

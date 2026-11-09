@@ -1,0 +1,71 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Staff pool</h1>
+    <p class="subtitle">Everyone available to be rostered, their desire to work, and which shifts they can cover.</p>
+  </div>
+  <div class="header-actions">
+    {{if .CurrentUser.IsSuperAdmin}}
+    <form method="post" action="/seed">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="btn btn-secondary">Seed test data</button>
+    </form>
+    {{end}}
+    <a href="/staff/new" class="btn btn-primary">+ Add staff</a>
+  </div>
+</div>
+
+<div class="card">
+  {{if not .Staff}}
+    <div class="empty-state">
+      <div class="icon">👥</div>
+      <p>No staff yet. Add your first person to get started.</p>
+    </div>
+  {{else}}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Desire</th>
+          <th>Taken</th>
+          <th>Available</th>
+          <th>Days</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Staff}}
+        {{$st := .}}
+        <tr>
+          <td class="name-cell">
+            {{.Name}}
+            {{if .Nickname}}<div class="nickname">"{{.Nickname}}"</div>{{end}}
+          </td>
+          <td>{{.ContactNumber}}</td>
+          <td>{{desirePct .Desire}}</td>
+          <td>{{.ShiftsTaken}}</td>
+          <td>{{.ShiftsAvailable}}/7</td>
+          <td>
+            <div class="day-pills">
+              {{range weekdays}}
+                <span class="day-pill{{if hasDay $st.AvailableDays .Bit}} on{{end}}" title="{{.Label}}">{{.Short}}</span>
+              {{end}}
+            </div>
+          </td>
+          <td class="row-actions">
+            <a class="btn btn-secondary btn-sm" href="/staff/{{.ID}}/edit">Edit</a>
+            <form method="post" action="/staff/{{.ID}}/delete" data-confirm="Remove {{.Name}}?" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+              <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+</div>
+{{end}}

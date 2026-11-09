@@ -1,0 +1,30 @@
+{{define "content"}}
+<div class="page-header">
+  <div>
+    <h1>Invite a login</h1>
+    <p class="subtitle">Only a super admin can add new logins — there's no public sign-up.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form class="stack" method="post" action="/admin/invite">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <div class="checkbox-row">
+          <label><input type="radio" name="role" value="staff" checked> <span>Staff</span></label>
+          <label><input type="radio" name="role" value="super_admin"> <span>Super admin</span></label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create login</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

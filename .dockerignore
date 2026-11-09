@@ -1,0 +1,28 @@
+# Keep the build context minimal. The Dockerfile only COPYs cmd/ internal/
+# web/, but anything not excluded here is still sent to the daemon.
+# deploy/ holds Kratos secrets.yml — it is mounted at runtime, never baked in.
+.git
+.github
+.gitignore
+.dockerignore
+deploy
+bin
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.crt
+*.p12
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.md
+LICENSE
+Dockerfile
+docker-compose*.yml
+.vscode
+.idea
+.claude
+.agents

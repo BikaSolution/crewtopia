@@ -1,0 +1,27 @@
+{{define "roster_cell"}}
+<div class="roster-slot{{if .Unfilled}} unfilled{{end}}" id="slot-{{.ID}}">
+  <div class="shift-name">{{.ShiftName}}</div>
+  <div class="shift-time">{{.StartTime}}&ndash;{{.EndTime}}</div>
+  {{if .Unfilled}}
+    <span class="assignee unfilled">Unfilled</span>
+  {{else}}
+    <span class="assignee">{{.StaffName}}</span>
+  {{end}}
+  {{if .Error}}<div class="subtitle" style="color:var(--danger)">{{.Error}}</div>{{end}}
+  <select
+      hx-post="/roster/assignment/{{.ID}}/reassign"
+      hx-target="#slot-{{.ID}}"
+      hx-swap="outerHTML"
+      hx-trigger="change"
+      hx-vals='{"csrf_token": "{{.CSRFToken}}"}'
+      name="staff_id">
+    <option value="">&mdash; Unassigned &mdash;</option>
+    {{$current := .StaffIDValue}}
+    {{range .Options}}
+      <option value="{{.ID}}" {{if eq $current .ID}}selected{{end}} data-ineligible="{{if not .Eligible}}true{{end}}">
+        {{.Name}}{{if not .Eligible}} (not eligible){{end}}
+      </option>
+    {{end}}
+  </select>
+</div>
+{{end}}

@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------
+# Secrets & environment — NEVER commit these. Use the *.example templates.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.kdbx
+id_rsa*
+id_ed25519*
+*.secret
+*.secrets
+secrets.*
+!secrets.example.*
+credentials*.json
+.netrc
+.npmrc
+.pgpass
+# Cloudflare tunnel credentials (if ever switching from token to cert mode)
+cert.pem
+*.cloudflared.json
+
+# ---------------------------------------------------------------------------
+# Data — databases may contain password hashes, sessions and user data.
+# ---------------------------------------------------------------------------
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.dump
+*.sql.gz
+*.bak
+backups/
+
+# ---------------------------------------------------------------------------
+# Go build output
+# ---------------------------------------------------------------------------
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.*
+go.work
+go.work.sum
+
+# ---------------------------------------------------------------------------
+# Logs, editors, OS, local tooling
+# ---------------------------------------------------------------------------
+*.log
+tmp/
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+.claude/
+.agents/
+CLAUDE.local.md
+
+# ---------------------------------------------------------------------------
+# Project-specific
+# ---------------------------------------------------------------------------
+/server
+# Kratos cookie/cipher secrets — see deploy/kratos/secrets.example.yml
+deploy/kratos/secrets.yml
+humantesting.md
