@@ -1,76 +1,143 @@
+# Crewtopia: Kratos (identity) + app + Oathkeeper (access proxy), published
+# only through a Cloudflare Tunnel.
+#
+# Never add "ports:". The app trusts the X-User-* headers Oathkeeper injects,
+# and Kratos's admin API is unauthenticated, so both are safe only while
+# nothing outside these networks can reach them. For local debugging, see
+# "Reaching services locally" in README.md.
+#
+# Networks:
+#   backend  internal (no internet): kratos, app, oathkeeper.
+#   edge     internal (no internet): oathkeeper <-> cloudflared. cloudflared
+#            can reach only the proxy — never the app or Kratos directly, so a
+#            misrouted tunnel hostname can't bypass Oathkeeper's checks.
+#   egress   cloudflared only: the one container that needs the internet.
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  mem_limit: 256m
+  pids_limit: 128
+  cpus: 1.0
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+# Kratos and the one-shot migration job share image, config and data.
+x-kratos: &kratos
+  <<: *hardening
+  image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
+  volumes:
+    - ./deploy/kratos:/etc/config/kratos:ro
+    - kratos-data:/var/lib/kratos
+  # The image declares these as VOLUMEs; tmpfs keeps them from becoming
+  # stray writable anonymous volumes.
+  tmpfs:
+    - /tmp:uid=10000,mode=0700
+    - /home/ory:uid=10000,mode=0700
+    - /var/lib/sqlite:uid=10000,mode=0700
+  networks: [backend]
+
 services:
+  # Applies Kratos's SQL migrations before every start (a no-op when the
+  # schema is current). Kratos image upgrades usually add migrations, and
+  # `serve` won't apply them itself.
+  kratos-migrate:
+    <<: *kratos
+    restart: "no"
+    command: migrate sql -e --yes -c /etc/config/kratos/kratos.yml -c /etc/config/kratos/secrets.yml
+
   kratos:
-    image: oryd/kratos:v26.2.0
-    restart: unless-stopped
+    <<: *kratos
+    mem_limit: 512m
     # secrets.yml (git-ignored) is merged on top of kratos.yml — later -c
     # files override earlier ones. See deploy/kratos/secrets.example.yml.
     command: serve -c /etc/config/kratos/kratos.yml -c /etc/config/kratos/secrets.yml --watch-courier
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    ports:
-      # Loopback only: local debugging (curl) without exposing either API to
-      # the LAN/internet. The admin API is unauthenticated — never publish it
-      # on 0.0.0.0. Containers reach kratos over the compose network anyway.
-      - "127.0.0.1:4433:4433" # public API
-      - "127.0.0.1:4434:4434" # admin API — identity CRUD, invite flow
-    volumes:
-      - ./deploy/kratos:/etc/config/kratos:ro
-      - kratos-data:/var/lib/kratos
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4434/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   app:
+    <<: *hardening
     build: .
-    restart: unless-stopped
     depends_on:
-      - kratos
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
+      kratos:
+        condition: service_healthy
     tmpfs:
       - /tmp
     environment:
+      GOMEMLIMIT: 200MiB
       CREWTOPIA_DB: /data/crewtopia.db
       CREWTOPIA_KRATOS_PUBLIC_URL: http://kratos:4433
       CREWTOPIA_KRATOS_ADMIN_URL: http://kratos:4434
     volumes:
       - app-data:/data
+    networks: [backend]
+    # Distroless image (no shell, no curl): the binary probes its own /healthz.
+    healthcheck:
+      test: ["CMD", "/app/server", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   oathkeeper:
-    image: oryd/oathkeeper:v26.2.0
-    restart: unless-stopped
+    <<: *hardening
+    image: oryd/oathkeeper:v26.2.0@sha256:467329abde34feefca217b7af76fff59e77fe1795a19376e9d479f33c7c198fc
     command: serve -c /etc/config/oathkeeper/oathkeeper.yml
     depends_on:
-      - kratos
-      - app
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    ports:
-      # Loopback only — hit the proxy directly (http://127.0.0.1:4455)
-      # without going out through the tunnel. Public traffic arrives via
-      # cloudflared over the compose network, not via these host ports.
-      - "127.0.0.1:4455:4455" # proxy — the front door
-      - "127.0.0.1:4456:4456" # oathkeeper's own management API
+      kratos:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    tmpfs:
+      - /tmp
     volumes:
       - ./deploy/oathkeeper:/etc/config/oathkeeper:ro
+    networks: [backend, edge]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4456/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   cloudflared:
+    <<: *hardening
     image: cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    # Token via env, not argv, so it doesn't show up in the host's `ps`.
+    # Token via env, not argv, so it doesn't show up in `ps` or `docker inspect` Cmd.
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+      # Metrics/readiness on loopback only (default listens on all interfaces).
+      TUNNEL_METRICS: 127.0.0.1:20241
+    networks: [edge, egress]
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:20241", "ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
-      - oathkeeper
+      oathkeeper:
+        condition: service_healthy
+
+networks:
+  backend:
+    internal: true
+  edge:
+    internal: true
+  egress: {}
 
 volumes:
   kratos-data:
