@@ -36,8 +36,35 @@ Login would be great using ory, can also live in docker container.
 
 Crewtopia runs as a Docker Compose stack: Ory Kratos (identity), the Go app,
 Ory Oathkeeper (access proxy in front of the app) and `cloudflared`
-(Cloudflare Tunnel). All host ports are bound to `127.0.0.1` only; public
-traffic arrives through the tunnel.
+(Cloudflare Tunnel). No ports are published on the host; public traffic
+arrives only through the tunnel.
+
+Hardening, all in `docker-compose.yml`:
+
+- Every container runs non-root with a read-only root filesystem, no Linux
+  capabilities, `no-new-privileges`, and memory/CPU/process limits.
+- Kratos, the app and Oathkeeper sit on an internal `backend` network with no
+  internet access. `cloudflared` shares a separate internal `edge` network with
+  Oathkeeper only, so it can't reach the app or Kratos directly. The app
+  trusts the `X-User-*` headers Oathkeeper sets, which is only safe while
+  that holds, so never add `ports:` or put `cloudflared` on `backend`.
+- Oathkeeper's management API listens on the container's loopback only.
+- A one-shot `kratos-migrate` service applies Kratos SQL migrations before
+  Kratos starts, so Kratos image upgrades don't need a manual step.
+
+### Reaching services locally
+
+Instead of publishing ports, run commands inside the stack:
+
+```sh
+# Kratos admin API (identities, invites) — from inside the kratos container
+docker compose exec kratos wget -qO- http://127.0.0.1:4434/admin/identities
+
+# The proxy, as the tunnel sees it
+docker run --rm --network crewtopia_edge curlimages/curl:8.17.0 -s \
+  -H 'Host: crewtopia.bikasolutions.co.za' -H 'X-Forwarded-Proto: https' \
+  http://oathkeeper:4455/roster
+```
 
 Secrets are never committed. Before the first start:
 

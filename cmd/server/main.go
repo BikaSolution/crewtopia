@@ -25,6 +25,11 @@ func env(name, fallback string) string {
 }
 
 func main() {
+	// Container HEALTHCHECK mode: probe the running server and exit.
+	if len(os.Args) == 2 && os.Args[1] == "-healthcheck" {
+		os.Exit(healthcheck(env("CREWTOPIA_ADDR", ":8080")))
+	}
+
 	dbPath := env("CREWTOPIA_DB", "crewtopia.db")
 
 	sqlDB, err := db.Open(dbPath)

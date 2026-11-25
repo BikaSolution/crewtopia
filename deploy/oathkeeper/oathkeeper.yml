@@ -5,6 +5,10 @@ serve:
     port: 4455
   api:
     port: 4456
+    # Management API (rules, JWKS, health) on loopback only: nothing outside
+    # the container needs it, and the edge network shouldn't see it. The
+    # compose healthcheck calls it from inside the container.
+    host: 127.0.0.1
 
 access_rules:
   matching_strategy: glob
